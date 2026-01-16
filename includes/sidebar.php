@@ -1,6 +1,6 @@
 <aside class="sidebar">
     <div class="sidebar-logo">
-        📚 <span>BookStore</span>
+        📚 <span>BookHive</span>
     </div>
 
     <nav class="sidebar-nav">

@@ -1,80 +1,104 @@
 <?php
-require '../config/database.php';
+session_start();
+require_once '../config/database.php';
 include '../includes/header.php';
 include '../includes/sidebar.php';
 
-$stmt = $pdo->query("
-    SELECT books.*, categories.category_name
-    FROM books
-    JOIN categories ON books.category_id = categories.category_id
-");
-$books = $stmt->fetchAll();
+/* GET FILTER VALUES */
+$search = $_GET['search'] ?? '';
+$category = $_GET['category'] ?? '';
+
+/* FETCH CATEGORIES */
+$catStmt = $pdo->query("SELECT * FROM categories ORDER BY category_name");
+$categories = $catStmt->fetchAll(PDO::FETCH_ASSOC);
+
+/* BUILD QUERY */
+$sql = "
+    SELECT b.*
+    FROM books b
+    WHERE 1
+";
+
+$params = [];
+
+if (!empty($search)) {
+    $sql .= " AND (b.title LIKE ? OR b.author LIKE ?)";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+}
+
+if (!empty($category)) {
+    $sql .= " AND b.category_id = ?";
+    $params[] = $category;
+}
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$books = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <div class="main-wrapper">
-    <?php include '../includes/topbar.php'; ?>
+<?php include '../includes/topbar.php'; ?>
 
-    <main class="content">
-        <h2>My Books</h2>
+<main class="content">
 
-        <div class="books-grid">
-            <?php foreach ($books as $book): ?>
-                <div class="book-card">
-                    <img 
-                        src="<?= htmlspecialchars($book['image']) ?>" 
-                        alt="<?= htmlspecialchars($book['title']) ?>"
-                    >
+<h2>My Books</h2>
 
-                    <div class="book-info">
-                        <h5><?= htmlspecialchars($book['title']) ?></h5>
-                        <p class="author"><?= htmlspecialchars($book['author']) ?></p>
-                        <p class="desc">
-                            <?= substr(htmlspecialchars($book['description']), 0, 100) ?>...
-                        </p>
+<!-- 🔍 SEARCH + CATEGORY FILTER -->
+<form method="GET" class="filter-bar">
+    <input
+        type="text"
+        name="search"
+        placeholder="Search books..."
+        value="<?= htmlspecialchars($search) ?>"
+        class="search-input"
+    >
 
-    <button
-  type="button"
-  class="btn-read read-more-btn"
-  data-id="<?= $book['book_id'] ?>"
-  data-title="<?= htmlspecialchars($book['title'], ENT_QUOTES) ?>"
-  data-author="<?= htmlspecialchars($book['author'], ENT_QUOTES) ?>"
-  data-desc="<?= htmlspecialchars($book['description'], ENT_QUOTES) ?>"
-  data-stock="<?= $book['stock'] ?>"
-  data-image="<?= htmlspecialchars($book['image'], ENT_QUOTES) ?>"
->
-  Read More
+    <select name="category" class="category-select">
+        <option value="">All Categories</option>
+        <?php foreach ($categories as $cat): ?>
+            <option value="<?= $cat['category_id'] ?>"
+                <?= ($category == $cat['category_id']) ? 'selected' : '' ?>>
+                <?= htmlspecialchars($cat['category_name']) ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+
+    <button type="submit" class="btn-filter">Filter</button>
+</form>
+
+<!-- 📚 BOOK LIST -->
+<div class="books-grid">
+<?php if (empty($books)): ?>
+    <p>No books found.</p>
+<?php endif; ?>
+
+<?php foreach ($books as $book): ?>
+    <div class="book-card">
+
+        <img src="<?= htmlspecialchars($book['image']) ?>" alt="Book">
+
+        <div class="book-info">
+            <h5><?= htmlspecialchars($book['title']) ?></h5>
+            <p class="author"><?= htmlspecialchars($book['author']) ?></p>
+            <p class="desc"><?= htmlspecialchars($book['description']) ?></p>
+
+            <form method="POST" action="/book_store/api/cart.php">
+                <input type="hidden" name="book_id" value="<?= $book['book_id'] ?>">
+                <button 
+  class="btn btn-primary add-to-cart-btn"
+  data-id="<?= $book['book_id'] ?>">
+  Add to Cart
 </button>
 
-                    </div>
-                </div>
-            <?php endforeach; ?>
+            </form>
         </div>
 
-      <!-- BOOK MODAL -->
-<div class="modal fade" id="bookModal" tabindex="-1" aria-labelledby="bookModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content book-modal">
-
-      <div class="modal-body">
-        <img id="modalImage" class="modal-book-img" alt="Book cover">
-
-        <h4 id="modalTitle"></h4>
-        <p id="modalAuthor"></p>
-        <p id="modalDesc"></p>
-
-        <p class="stock">
-          Stock available: <span id="modalStock"></span>
-        </p>
-
-        <button id="addToCartBtn" class="btn-add-cart">
-          Add to Cart
-        </button>
-      </div>
-
     </div>
-  </div>
+<?php endforeach; ?>
 </div>
 
-
+</main>
+</div>
 
 <?php include '../includes/footer.php'; ?>

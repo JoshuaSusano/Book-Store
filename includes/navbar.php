@@ -3,7 +3,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
 	<div class="container">
-		<a class="navbar-brand" href="/book_store/index.php">Book Store</a>
+		<a class="navbar-brand" href="/book_store/index.php">Book Hive</a>
 		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
 			<span class="navbar-toggler-icon"></span>
 		</button>

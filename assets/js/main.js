@@ -1,45 +1,29 @@
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('searchForm');
+    const input = document.getElementById('searchInput');
 
-    const modalEl = document.getElementById('bookModal');
-    const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+    if (!form || !input) return;
 
-    let selectedBookId = null;
-
-    // Handle Read More click
-    document.addEventListener('click', function (e) {
-        if (e.target.classList.contains('read-more-btn')) {
-
-            const btn = e.target;
-
-            selectedBookId = btn.dataset.id;
-
-            document.getElementById('modalTitle').textContent = btn.dataset.title;
-            document.getElementById('modalAuthor').textContent = btn.dataset.author;
-            document.getElementById('modalDesc').textContent = btn.dataset.desc;
-            document.getElementById('modalStock').textContent = btn.dataset.stock;
-            document.getElementById('modalImage').src = btn.dataset.image;
-
-            modal.show(); // 👈 FORCE modal to show
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        const q = input.value.trim();
+        if (q !== '') {
+            window.location.href = `/book_store/user/books.php?search=${encodeURIComponent(q)}`;
         }
     });
 
-    // Add to Cart
-    const addBtn = document.getElementById('addToCartBtn');
-    if (addBtn) {
-        addBtn.addEventListener('click', function () {
-            if (!selectedBookId) return;
+    function showToast(message, isError = false) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
 
-            fetch('/book_store/api/cart.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ book_id: selectedBookId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                alert(data.message);
-                modal.hide();
-            });
-        });
-    }
+    toast.classList.remove("error");
+    if (isError) toast.classList.add("error");
+
+    toast.classList.add("show");
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+    }, 2500);
+}
 
 });

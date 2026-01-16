@@ -1,81 +1,257 @@
 <?php
-require_once 'config/database.php';
-require_once 'includes/header.php';
-require_once 'includes/navbar.php';
-// Fetch featured books (latest 6)
-$stmt = $pdo->query('SELECT b.*, c.category_name FROM books b JOIN categories c ON b.category_id = c.category_id ORDER BY b.created_at DESC LIMIT 6');
-$books = $stmt->fetchAll();
+session_start();
+$page = $_GET['page'] ?? 'login';
+
+$error = $_SESSION['error'] ?? null;
+unset($_SESSION['error']);
 ?>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Book Store | <?= ucfirst($page) ?></title>
+
+<link href="/book_store/assets/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
 <style>
-	body, .navbar, .card, .btn, .form-control, .display-4, .lead, h1, h2, h3, h4, h5, h6 {
-		font-family: 'Inter', Arial, sans-serif !important;
-	}
+/* RESET */
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: 'Inter', sans-serif;
+}
+
+/* LAYOUT */
+.auth-wrapper {
+  display: grid;
+  grid-template-columns: 50% 50%;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* IMAGE */
+.auth-image {
+  background: url('/book_store/assets/images/login.png') center / cover no-repeat;
+  position: relative;
+}
+.auth-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+}
+
+/* FORM SIDE */
+.auth-form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+}
+
+/* FORM BOX */
+.auth-box {
+  width: 100%;
+  max-width: 480px;
+}
+
+/* HEADINGS */
+.auth-box h1 {
+  font-weight: 800;
+  font-size: 2.1rem;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 28px;
+}
+
+/* LABELS */
+.auth-box label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+}
+
+/* INPUTS */
+.form-control {
+  height: 46px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+/* LIGHT INPUT */
+.light-input {
+  background: #ffffff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+  border: 1px solid #e5e5e5;
+}
+
+/* PASSWORD ICON */
+.password-wrapper {
+  position: relative;
+}
+.password-wrapper i {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+  cursor: pointer;
+}
+
+/* SPACING */
+.mb-4 { margin-bottom: 22px !important; }
+.mb-3 { margin-bottom: 14px !important; }
+
+/* NAME GRID */
+.name-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 6px;
+  margin-bottom: 22px;
+}
+
+/* REMEMBER ME */
+.remember {
+  font-size: 0.85rem;
+  margin: 14px 0 22px;
+}
+
+/* BUTTON */
+.auth-btn {
+  width: 100%;
+  height: 52px;
+  border-radius: 30px;
+  font-weight: 600;
+  background: #6f86ff;
+  border: none;
+  margin-top: 10px;
+}
+.auth-btn:hover {
+  background: #5c73f0;
+}
+
+/* BOTTOM TEXT */
+.bottom-text {
+  text-align: center;
+  font-size: 0.85rem;
+  margin-top: 16px;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .auth-wrapper {
+    grid-template-columns: 100%;
+  }
+  .auth-image {
+    display: none;
+  }
+}
 </style>
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-2">
-	<div class="container">
-		<a class="navbar-brand fw-bold text-primary" href="/book_store/index.php" style="font-size:1.6rem;">Book Store</a>
-		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-			<span class="navbar-toggler-icon"></span>
-		</button>
-		<div class="collapse navbar-collapse" id="navbarNav">
-			<ul class="navbar-nav ms-auto align-items-center">
-				<?php if (isset($_SESSION['user_id'])): ?>
-					<li class="nav-item"><a class="nav-link" href="/book_store/user/dashboard.php"><i class="bi bi-person-circle"></i> Dashboard</a></li>
-					<li class="nav-item"><a class="nav-link" href="/book_store/user/books.php"><i class="bi bi-book"></i> Browse Books</a></li>
-					<li class="nav-item"><a class="nav-link" href="/book_store/user/cart.php"><i class="bi bi-cart"></i> Cart</a></li>
-					<li class="nav-item"><a class="nav-link" href="/book_store/user/orders.php"><i class="bi bi-bag-check"></i> Orders</a></li>
-					<li class="nav-item"><a class="nav-link" href="/book_store/auth/logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
-				<?php else: ?>
-					<li class="nav-item"><a class="nav-link" href="/book_store/auth/login.php"><i class="bi bi-person"></i> Login</a></li>
-					<li class="nav-item"><a class="nav-link" href="/book_store/auth/register.php"><i class="bi bi-person-plus"></i> Register</a></li>
-				<?php endif; ?>
-			</ul>
-		</div>
-	</div>
-</nav>
-<section class="bg-white py-5 mb-0">
-	<div class="container">
-		<div class="row align-items-center">
-			<div class="col-lg-7 mb-4 mb-lg-0">
-				<h1 class="display-4 fw-bold text-primary mb-3">Welcome to Book Store</h1>
-				<p class="lead text-secondary mb-4">Discover and order your favorite books online. Fast, secure, and easy shopping experience.</p>
-				<a href="/book_store/user/books.php" class="btn btn-primary btn-lg px-4 shadow-sm"><i class="bi bi-book"></i> Browse Books</a>
-			</div>
-			<div class="col-lg-5 text-center">
-				<img src="/book_store/assets/images/hero-books.png" alt="Books" class="img-fluid" style="max-height:260px;">
-			</div>
-		</div>
-	</div>
-</section>
-<section class="container py-4">
-	<h3 class="fw-bold text-primary mb-4">Featured Books</h3>
-	<div class="row g-4">
-		<?php foreach ($books as $book): ?>
-			<div class="col-12 col-sm-6 col-md-4 col-lg-3">
-				<div class="card h-100 border-0 shadow-sm book-card position-relative">
-					<img src="/book_store/assets/images/book-default.png" alt="<?= htmlspecialchars($book['title']) ?>" class="card-img-top p-3" style="height:180px;object-fit:contain;">
-					<div class="card-body d-flex flex-column">
-						<h5 class="card-title fw-bold mb-1 text-truncate" title="<?= htmlspecialchars($book['title']) ?>"><?= htmlspecialchars($book['title']) ?></h5>
-						<p class="card-text text-muted mb-2" style="font-size:0.98rem;">By <?= htmlspecialchars($book['author']) ?></p>
-						<div class="mb-2">
-							<span class="badge bg-light text-dark border me-1"><i class="bi bi-tag"></i> <?= htmlspecialchars($book['category_name']) ?></span>
-							<span class="badge bg-primary"><i class="bi bi-currency-dollar"></i> <?= number_format($book['price'], 2) ?></span>
-						</div>
-						<div class="mt-auto">
-							<?php if ($book['stock'] > 0): ?>
-								<span class="badge bg-success"><i class="bi bi-check-circle"></i> In Stock</span>
-							<?php else: ?>
-								<span class="badge bg-danger"><i class="bi bi-x-circle"></i> Out of Stock</span>
-							<?php endif; ?>
-						</div>
-					</div>
-				</div>
-			</div>
-		<?php endforeach; ?>
-		<?php if (empty($books)): ?>
-			<div class="col-12"><div class="alert alert-info">No books available.</div></div>
-		<?php endif; ?>
-	</div>
-</section>
-<?php require_once 'includes/footer.php'; ?>
+</head>
+
+<body>
+
+<div class="auth-wrapper">
+
+  <!-- IMAGE LEFT (LOGIN) -->
+  <?php if ($page === 'login'): ?>
+    <div class="auth-image"></div>
+  <?php endif; ?>
+
+  <!-- FORM -->
+  <div class="auth-form">
+    <div class="auth-box">
+
+      <?php if ($error): ?>
+        <div class="alert alert-danger text-center mb-3">
+          <?= htmlspecialchars($error) ?>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($page === 'login'): ?>
+        <!-- LOGIN -->
+        <h1>WELCOME TO BOOK HIVE</h1>
+        <p class="subtitle">Book store helps you to find and borrowing books easy and fast.</p>
+
+        <form method="POST" action="/book_store/auth/login.php">
+          <div class="mb-4">
+            <label>Email</label>
+            <input type="email" name="email" class="form-control" placeholder="Enter Email" required>
+          </div>
+
+          <div class="mb-3 password-wrapper">
+            <label>Password</label>
+            <input type="password" name="password" class="form-control" placeholder="Enter Password" required>
+            <i class="bi bi-eye"></i>
+          </div>
+
+          <div class="remember">
+            <input type="checkbox"> Remember me
+          </div>
+
+          <button class="btn auth-btn text-white">LogIn</button>
+        </form>
+
+        <div class="bottom-text">
+          Don’t have an account?
+          <a href="?page=register">Register Now</a>
+        </div>
+
+      <?php else: ?>
+        <!-- REGISTER -->
+        <h1>Create Account</h1>
+        <p class="subtitle">Book Store helps you to find and borrowing books easy and fast.</p>
+
+        <form method="POST" action="/book_store/auth/register.php">
+          <div class="mb-4">
+            <label>Email Address</label>
+            <input type="email" name="email" class="form-control light-input" placeholder="Enter Email Address" required>
+          </div>
+
+          <label>Name</label>
+          <div class="name-grid">
+            <input type="text" name="first_name" class="form-control light-input" placeholder="First Name" required>
+            <input type="text" name="middle_name" class="form-control light-input" placeholder="Middle Name">
+            <input type="text" name="last_name" class="form-control light-input" placeholder="Last Name" required>
+          </div>
+
+          <div class="mb-4">
+            <label>Password</label>
+            <input type="password" name="password" class="form-control light-input" placeholder="Enter Password" required>
+          </div>
+
+          <button class="btn auth-btn text-white">Sign Up</button>
+        </form>
+
+        <div class="bottom-text">
+          Already have an Account?
+          <a href="?page=login">Login</a>
+        </div>
+
+      <?php endif; ?>
+
+    </div>
+  </div>
+
+  <!-- IMAGE RIGHT (REGISTER) -->
+  <?php if ($page === 'register'): ?>
+    <div class="auth-image"></div>
+  <?php endif; ?>
+
+</div>
+
+</body>
+</html>
